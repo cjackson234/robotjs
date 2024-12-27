@@ -1,6 +1,6 @@
 on:
   workflow_dispatch:
-name: Build and Release (Windows Only)
+name: Build and Release for Electron (Windows Only)
 permissions:
   contents: write
 jobs:
@@ -11,7 +11,7 @@ jobs:
         host: [x64]
         target: [x64]
         node: [20]
-    name: Build for Windows - host=${{ matrix.host }}, target=${{ matrix.target }}
+    name: Build Electron Package for Windows - host=${{ matrix.host }}, target=${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,9 +32,15 @@ jobs:
         run: npm install
 
       - name: Rebuild for Electron
-        run: npx electron-rebuild --version=22.2.1
+        env:
+          npm_config_target: 22.2.1                 # Electron version
+          npm_config_arch: x64                      # Architecture
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_build_from_source: true
+        run: npm rebuild
 
-      - name: Build the package
+      - name: Package Electron Build
         run: npm run pack
 
       - name: Release
