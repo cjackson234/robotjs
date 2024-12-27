@@ -1,27 +1,17 @@
 on:
   workflow_dispatch:
-name: Build and Release
+name: Build and Release (Windows Only)
 permissions:
   contents: write
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         host: [x64]
         target: [x64]
         node: [20]
-        include:
-          - os: windows-latest
-            host: x86
-            target: x86
-            node: 20
-          - os: macos-latest
-            host: arm64
-            target: arm64
-            node: 20
-    name: os=${{ matrix.os }} host=${{ matrix.host }}, target=${{ matrix.target }}
+    name: Build for Windows - host=${{ matrix.host }}, target=${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,19 +20,10 @@ jobs:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.host }}
 
-      - name: Add setuptools for Python 3.12
-        if: matrix.os != 'macos-m1'
-        run: pip install setuptools
-
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.3
-        if: contains(matrix.os, 'windows')
         with:
           msbuild-architecture: ${{ matrix.target }}
-
-      - name: Install X11 dev (Linux only)
-        if: contains(matrix.os, 'ubuntu')
-        run: sudo apt-get update && sudo apt-get install -y xorg-dev
 
       - name: Install Electron
         run: npm install electron@22.2.1 --save-dev
