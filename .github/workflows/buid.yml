@@ -1,6 +1,6 @@
 on:
   workflow_dispatch:
-name: Build and Release Electron Package
+name: Build and Release
 permissions:
   contents: write
 jobs:
@@ -21,7 +21,7 @@ jobs:
             host: arm64
             target: arm64
             node: 20
-    name: os=${{ matrix.os }} host=${{ matrix.host }} target=${{ matrix.target }}
+    name: os=${{ matrix.os }} host=${{ matrix.host }}, target=${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,25 +40,23 @@ jobs:
         with:
           msbuild-architecture: ${{ matrix.target }}
 
-      - name: Install X11 development libraries
+      - name: Install X11 dev (Linux only)
         if: contains(matrix.os, 'ubuntu')
         run: sudo apt-get update && sudo apt-get install -y xorg-dev
+
+      - name: Install Electron
+        run: npm install electron@22.2.1 --save-dev
 
       - name: Install dependencies
         run: npm install
 
-      - name: Add Electron Rebuild
-        run: npm install --save-dev electron-rebuild
+      - name: Rebuild for Electron
+        run: npx electron-rebuild --version=22.2.1
 
-      - name: Rebuild Native Modules for Electron
-        run: npx electron-rebuild
-        env:
-          ELECTRON_CUSTOM_VERSION: "22.2.1"
-
-      - name: Package Electron Build
+      - name: Build the package
         run: npm run pack
 
-      - name: Create Release
+      - name: Release
         env:
           NODE_PRE_GYP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release
