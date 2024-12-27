@@ -1,17 +1,12 @@
 on:
   workflow_dispatch:
-name: build and release
+name: Build and Release Electron Package
 permissions:
   contents: write
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      # matrix:
-      #   os: [macos-latest]
-      #   host: [arm64]
-      #   target: [arm64]
-      #   node: [20]
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         host: [x64]
@@ -26,15 +21,16 @@ jobs:
             host: arm64
             target: arm64
             node: 20
-    name: os=${{ matrix.os }}  host=${{ matrix.host }}, target=${{ matrix.target }}
+    name: os=${{ matrix.os }} host=${{ matrix.host }} target=${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.host }}
 
-      - name: add setuptools for python 3.12
+      - name: Add setuptools for Python 3.12
         if: matrix.os != 'macos-m1'
         run: pip install setuptools
 
@@ -44,17 +40,25 @@ jobs:
         with:
           msbuild-architecture: ${{ matrix.target }}
 
-      - name: install x11 dev
-        if: contains(matrix.os,'ubuntu')
-        run: sudo apt-get update && sudo apt-get install xorg-dev
+      - name: Install X11 development libraries
+        if: contains(matrix.os, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y xorg-dev
 
       - name: Install dependencies
-        run: npm install --build-from-source
+        run: npm install
 
-      - name: Build
+      - name: Add Electron Rebuild
+        run: npm install --save-dev electron-rebuild
+
+      - name: Rebuild Native Modules for Electron
+        run: npx electron-rebuild
+        env:
+          ELECTRON_CUSTOM_VERSION: "22.2.1"
+
+      - name: Package Electron Build
         run: npm run pack
 
-      - name: release
+      - name: Create Release
         env:
           NODE_PRE_GYP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release
